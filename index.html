@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IBM File Upload Manager</title>
+<style>
+  body { font-family: Arial; background:#f4f4f4; margin:0; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .container { background:#fff; padding:30px; border-radius:12px; width:400px; text-align:center; }
+  input[type="text"], input[type="password"], input[type="file"] { width:80%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ccc; }
+  .btn { background:#0f62fe; color:#fff; padding:8px 20px; border:none; border-radius:6px; cursor:pointer; }
+  .btn:hover { background:#0353e9; }
+  .file-list { margin-top:20px; text-align:left; max-height:300px; overflow:auto; }
+  .hidden { display:none; }
+  a { color:#0f62fe; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div class="container" id="loginPage">
+  <h2>Login</h2>
+  <input type="text" id="username" placeholder="User ID"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button class="btn" onclick="login()">Login</button>
+</div>
+
+<!-- Upload Page -->
+<div class="container hidden" id="uploadPage">
+  <h2>Upload Files</h2>
+  <input type="file" id="fileInput" multiple><br>
+  <button class="btn" onclick="uploadFiles()">Upload</button><br><br>
+  <button class="btn" onclick="showFiles()">View Uploaded Files</button>
+  <div class="file-list hidden" id="fileList"></div>
+  <button class="btn hidden" id="backBtn" onclick="hideFiles()">Back to Upload</button>
+</div>
+
+<script>
+const backendURL = "http://localhost:5000";
+
+// ===== Login =====
+function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  fetch(`${backendURL}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success) {
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("uploadPage").classList.remove("hidden");
+    } else alert("Invalid credentials!");
+  });
+}
+
+// ===== Upload Files =====
+function uploadFiles() {
+  const input = document.getElementById("fileInput");
+  if(!input.files.length) return alert("Select files first!");
+
+  const formData = new FormData();
+  for(const f of input.files) formData.append("files", f);
+
+  fetch(`${backendURL}/upload`, { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(data => {
+      alert("Files uploaded successfully!");
+      input.value = ""; // Clear file input
+    })
+    .catch(err => alert("Upload failed!"));
+}
+
+// ===== Show Uploaded Files =====
+function showFiles() {
+  fetch(`${backendURL}/files`)
+    .then(res => res.json())
+    .then(files => {
+      const list = document.getElementById("fileList");
+      if(files.length === 0) list.innerHTML = "<p>No files uploaded yet.</p>";
+      else list.innerHTML = files
+        .map(f => `<a href="${backendURL}/uploads/${f}" target="_blank">${f}</a>`)
+        .join("<br>");
+      list.classList.remove("hidden");
+      document.getElementById("backBtn").classList.remove("hidden");
+    });
+}
+
+// ===== Back to Upload =====
+function hideFiles() {
+  document.getElementById("fileList").classList.add("hidden");
+  document.getElementById("backBtn").classList.add("hidden");
+}
+</script>
+
+</body>
+</html>
